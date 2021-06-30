@@ -88,10 +88,10 @@ rem //
 rem //  NOTE: only 64bit compiles supported.
 
 if %Has2019%==1 (
-    cmake -G "Visual Studio 16 2019" -A x64 -Thost=x64 --config "Release" -DCMAKE_CONFIGURATION_TYPES="Release;Debug"  ../..
+    cmake -G "Visual Studio 16 2019" -A x64 -Thost=x64 -DCMAKE_CONFIGURATION_TYPES="Release;Debug"  ../..
 ) else (
     if %Has2017%==1 (
-      cmake -G "Visual Studio 15 2017 Win64" -Thost=x64 --config "Release" -DCMAKE_CONFIGURATION_TYPES="Release;Debug"  ../..
+      cmake -G "Visual Studio 15 2017 Win64" -Thost=x64 -DCMAKE_CONFIGURATION_TYPES="Release;Debug"  ../..
     ) else (
       @echo Did not fond Visual studio 2017 or Visual Studio 2019.
       popd
