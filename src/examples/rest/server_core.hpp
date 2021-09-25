@@ -69,9 +69,7 @@
 #include <sstream>
 #include <string>
 
-#define GCC_COMPILER (defined(__GNUC__) && !defined(__clang__))
-
-#if GCC_COMPILER
+#ifdef __GNUC__
 // save diagnostic state
 #pragma GCC diagnostic push
 // turn off the specific warning. Can also use "-Wall"
@@ -85,6 +83,7 @@
 
 #include <htm/engine/Network.hpp>
 #include <htm/engine/RESTapi.hpp>
+
 
 #define SERVER_CERT_FILE "./cert.pem"
 #define SERVER_PRIVATE_KEY_FILE "./key.pem"
@@ -102,12 +101,11 @@ public:
     /*** Register all of the handlers ***/
 
     //  GET  /hi    ==>  "Hello World!"\n
-    svr.Get("/hi", [](const Request & /*req*/, Response &res) {
-      res.set_content("{\"result\": \"Hello World!\"}\n", "application/json");
-    });
+    svr.Get("/hi", [](const Request & /*req*/, Response &res) { res.set_content("{\"result\": \"Hello World!\"}\n", "application/json"); });
     if (!svr.is_valid()) {
       NTA_THROW << "server could not be created...\n";
     }
+    
 
     //  POST /network?id=<specified id>
     // or
