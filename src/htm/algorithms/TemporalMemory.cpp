@@ -315,13 +315,17 @@ void TemporalMemory::activateCells(const SDR &activeColumns, const bool learn) {
 	) = columnData;
 
     const bool isActiveColumn = activeColumnsBegin != activeColumnsEnd;
-    if (isActiveColumn) { //current active column...
-      if (columnActiveSegmentsBegin != columnActiveSegmentsEnd) {
+    if (isActiveColumn) 
+    { //current active column...
+      if (columnActiveSegmentsBegin != columnActiveSegmentsEnd) 
+      {
 	//...was also predicted -> learn :o)
         activatePredictedColumn_(
             columnActiveSegmentsBegin, columnActiveSegmentsEnd,
             prevActiveCells, prevWinnerCells, learn);
-      } else {
+      } 
+      else 
+      {
 	//...has not been predicted -> 
         burstColumn_(column,
                      columnMatchingSegmentsBegin, columnMatchingSegmentsEnd,
@@ -329,8 +333,11 @@ void TemporalMemory::activateCells(const SDR &activeColumns, const bool learn) {
 		     learn);
       }
 
-    } else { // predicted but not active column -> unlearn
-      if (learn) {
+    } 
+    else 
+    { // predicted but not active column -> unlearn
+      if (learn) 
+      {
         punishPredictedColumn_(columnMatchingSegmentsBegin, columnMatchingSegmentsEnd, prevActiveCells);
       }
     } //else: not predicted & not active -> no activity -> does not show up at all
@@ -375,12 +382,14 @@ void TemporalMemory::activateDendrites(const bool learn,
 
   const size_t length = connections.segmentFlatListLength();
 
+  // vector of segment indexes, will hold count of active inputs for each segment
   numActivePotentialSynapsesForSegment_.assign(length, 0);
   numActiveConnectedSynapsesForSegment_ = connections_.computeActivity(
                               numActivePotentialSynapsesForSegment_,
                               activeCells_,
 			      learn);
-
+  
+  
   // Active segments, connected synapses.
   activeSegments_.clear();
   for (size_t segment = 0; segment < numActiveConnectedSynapsesForSegment_.size(); segment++) {
