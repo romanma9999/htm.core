@@ -140,7 +140,8 @@ Segment Connections::createSegment(const CellIdx cell,
 
 Synapse Connections::createSynapse(Segment segment,
                                    CellIdx presynapticCell,
-                                   Permanence permanence) {
+                                   Permanence permanence, 
+                                   bool permanent) {
 
   // Skip cells that are already synapsed on by this segment
   // Biological motivation (?):
@@ -186,6 +187,7 @@ Synapse Connections::createSynapse(Segment segment,
   SynapseData &synapseData    = synapses_[synapse];
   synapseData.presynapticCell = presynapticCell;
   synapseData.segment         = segment;
+  synapseData.permanent       = permanent;
   // Start in disconnected state.
   synapseData.permanence           = connectedThreshold_ - static_cast<Permanence>(1.0);
   synapseData.presynapticMapIndex_ = 
@@ -338,10 +340,10 @@ void Connections::updateSynapsePermanence(const Synapse synapse,
   const bool before = synData.permanence >= connectedThreshold_;
   const bool after  = permanence         >= connectedThreshold_;
 
-  // update the permanence
-  synData.permanence = permanence;
 
   if( before == after ) { //no change in dis/connected status
+      // update the permanence
+      synData.permanence = permanence;
       return;
   }
     const auto &presyn    = synData.presynapticCell;
@@ -355,6 +357,10 @@ void Connections::updateSynapsePermanence(const Synapse synapse,
     if( after ) { //connect
       segmentData.numConnected++;
 
+      // update the permanence
+      synData.permanence = permanence;
+
+
       // Remove this synapse from presynaptic potential synapses.
       removeSynapseFromPresynapticMap_( synData.presynapticMapIndex_,
                                         potentialPresyn, potentialPreseg );
@@ -365,6 +371,13 @@ void Connections::updateSynapsePermanence(const Synapse synapse,
       connectedPreseg.push_back( segment );
     }
     else { //disconnected
+      
+      if (synData.permanent)
+        return;
+
+      // update the permanence
+      synData.permanence = permanence;
+
       segmentData.numConnected--;
 
       // Remove this synapse from presynaptic connected synapses.
@@ -483,7 +496,8 @@ void Connections::adaptSegment(const Segment segment,
                                const Permanence increment,
                                const Permanence decrement, 
 			       const bool pruneZeroSynapses, 
-			       const UInt segmentThreshold)
+			       const UInt segmentThreshold, 
+                   bool permanent)
 {
   const auto &inputArray = inputs.getDense();
 
@@ -503,24 +517,35 @@ void Connections::adaptSegment(const Segment segment,
         update = -decrement;
       }
 
+     if (permanent && update > 0.0) 
+     {
+         synapses_[synapse].permanent = permanent;
+     }
+
     //prune permanences that reached zero
-    if (pruneZeroSynapses and 
+    if (!synapseData.permanent and pruneZeroSynapses and 
         synapseData.permanence + update < htm::minPermanence + htm::Epsilon) { //new value will disconnect the synapse
-      destroyLater.push_back(synapse);
-      prunedSyns_++; //for statistics
-      continue;
+        destroyLater.push_back(synapse);
+        prunedSyns_++; // for statistics
+        continue;
     }
 
+     
+
     //update synapse, but for TS only if changed
-    if(timeseries_) {
-      if( update != previousUpdates_[synapse] ) {
+    if(timeseries_) 
+    {
+      if( update != previousUpdates_[synapse] ) 
+      {
         updateSynapsePermanence(synapse, synapseData.permanence + update);
       }
       currentUpdates_[ synapse ] = update;
-    } else {
-      updateSynapsePermanence(synapse, synapseData.permanence + update);
+    } 
+    else 
+    {
+       updateSynapsePermanence(synapse, synapseData.permanence + update);
     }
-  }
+  }  
 
   //destroy synapses accumulated for pruning
   for(const auto pruneSyn : destroyLater) {
@@ -707,7 +732,8 @@ void Connections::growSynapses(const Segment segment,
 					  const Permanence initialPermanence,
 					  Random& rng,
 					  const size_t maxNew,
-					  const size_t maxSynapsesPerSegment) {
+					  const size_t maxSynapsesPerSegment, 
+                      bool permanent) {
 
   //0. copy input vector - candidate cells on input
   vector<CellIdx> candidates(growthCandidates.begin(), growthCandidates.end());
@@ -735,7 +761,7 @@ void Connections::growSynapses(const Segment segment,
   for (const auto syn : candidates) {
     // #COND: this loop finishes two folds: a) we ran out of candidates (above), b) we grew the desired number of new synapses (below)
     if(numSynapses(segment) == nDesired) break;
-    createSynapse(segment, syn, initialPermanence); //TODO createSynapse consider creating a vector of new synapses at once?
+    createSynapse(segment, syn, initialPermanence, permanent); // TODO createSynapse consider creating a vector of new synapses at once?
   }
 }
 

@@ -43,13 +43,13 @@
 
 function(get_versions version major minor patch)
     # do we have Git installed and are we in a repository?
-    find_package(Git)
-    if(GIT_FOUND)
-        execute_process(COMMAND "${GIT_EXECUTABLE}" log --pretty=format:'%h' -n 1
-            OUTPUT_VARIABLE GIT_REV
-            OUTPUT_STRIP_TRAILING_WHITESPACE
-            ERROR_QUIET)
-    endif()
+    #find_package(Git)
+    #if(GIT_FOUND)
+    #    execute_process(COMMAND "${GIT_EXECUTABLE}" log --pretty=format:'%h' -n 1
+    #        OUTPUT_VARIABLE GIT_REV
+    #        OUTPUT_STRIP_TRAILING_WHITESPACE
+    #        ERROR_QUIET)
+    #endif()
     # Check whether we got any revision; which isn't
     # always the case, e.g. when someone downloaded a tar.gz or zip
     # file from Github instead of a checkout...

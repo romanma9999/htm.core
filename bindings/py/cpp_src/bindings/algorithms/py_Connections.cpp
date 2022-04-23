@@ -59,7 +59,8 @@ R"(Compatibility Warning: This classes API is unstable and may change without wa
     py_Connections.def("createSynapse", &Connections::createSynapse,
         py::arg("segment"),
         py::arg("presynaticCell"),
-        py::arg("permanence"));
+        py::arg("permanence"), 
+        py::arg("permanent") = false);
 
     py_Connections.def("growSynapses", &Connections::growSynapses,
         py::arg("segment"),
@@ -67,7 +68,8 @@ R"(Compatibility Warning: This classes API is unstable and may change without wa
 	py::arg("initialPermanence"),
 	py::arg("rng"),
 	py::arg("maxNew") = 0,
-	py::arg("maxSynapsesPerSegment") = 0);
+	py::arg("maxSynapsesPerSegment") = 0, 
+    py::arg("permanent") = false);
 
     py_Connections.def("destroySynapse", &Connections::destroySynapse);
 
@@ -146,8 +148,8 @@ R"(Returns pair of:
       py::arg("increment"),
       py::arg("decrement"),
       py::arg("pruneZeroSynapses") = false,
-      py::arg("segmentThreshold") = 0
-		    );
+      py::arg("segmentThreshold") = 0,
+      py::arg("permanent") = false);
 
     py_Connections.def("raisePermanencesToThreshold", &Connections::raisePermanencesToThreshold);
 

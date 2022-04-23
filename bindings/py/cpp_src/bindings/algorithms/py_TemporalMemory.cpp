@@ -234,22 +234,23 @@ R"(See also standard library function: pickle.loads(...))");
         ));
 
 
-        py_HTM.def("activateCells", [](HTM_t& self, const SDR& activeColumns, bool learn)
+        py_HTM.def("activateCells", [](HTM_t& self, const SDR& activeColumns, bool learn,bool permanent = false)
         {
-            self.activateCells(activeColumns, learn);
+            self.activateCells(activeColumns, learn,permanent);
         },
 R"(Calculate the active cells, using the current active columns and
 dendrite segments.  Grow and reinforce synapses.)"
-            , py::arg("activeColumns"), py::arg("learn") = true);
+            , py::arg("activeColumns"), py::arg("learn") = true,py::arg("permanent") = false);
 
-        py_HTM.def("compute", [](HTM_t& self, const SDR &activeColumns, bool learn)
-            { self.compute(activeColumns, learn); },
+        py_HTM.def("compute", [](HTM_t& self, const SDR &activeColumns, bool learn, bool permanent = false)
+            { self.compute(activeColumns, learn,permanent); },
                 py::arg("activeColumns"),
-                py::arg("learn") = true);
+                py::arg("learn") = true,
+                py::arg("permanent") = false);
 
         py_HTM.def("compute", [](HTM_t& self, const SDR &activeColumns, bool learn,
-                                 const SDR &externalPredictiveInputsActive, const SDR &externalPredictiveInputsWinners)
-            { self.compute(activeColumns, learn, externalPredictiveInputsActive, externalPredictiveInputsWinners); },
+                                 const SDR &externalPredictiveInputsActive, const SDR &externalPredictiveInputsWinners,  bool permanent = false)
+            { self.compute(activeColumns, learn, externalPredictiveInputsActive, externalPredictiveInputsWinners,permanent); },
 R"(Perform one time step of the Temporal Memory algorithm.
 
 This method calls activateDendrites, then calls activateCells. Using
@@ -274,7 +275,8 @@ Argument externalPredictiveInputsWinners
                 py::arg("activeColumns"),
                 py::arg("learn") = true,
                 py::arg("externalPredictiveInputsActive"),
-                py::arg("externalPredictiveInputsWinners"));
+                py::arg("externalPredictiveInputsWinners"),
+                py::arg("permanent") = false);
 
         py_HTM.def("reset", &HTM_t::reset,
 R"(Indicates the start of a new sequence.

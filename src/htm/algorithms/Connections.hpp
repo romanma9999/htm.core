@@ -75,6 +75,7 @@ struct SynapseData: public Serializable {
   Permanence permanence;
   Segment segment;
   Synapse presynapticMapIndex_;
+  bool permanent{false};
 
   SynapseData() {}
 
@@ -85,12 +86,13 @@ struct SynapseData: public Serializable {
     ar(CEREAL_NVP(permanence),
        CEREAL_NVP(presynapticCell),
        CEREAL_NVP(segment),
-       CEREAL_NVP(presynapticMapIndex_)
+       CEREAL_NVP(presynapticMapIndex_), 
+       CEREAL_NVP(permanent)
     );
   }
   template<class Archive>
   void load_ar(Archive & ar) {
-    ar( permanence, presynapticCell, segment, presynapticMapIndex_);
+    ar(permanence, presynapticCell, segment, presynapticMapIndex_, permanent);
   }
 
   //operator==
@@ -100,6 +102,7 @@ struct SynapseData: public Serializable {
     NTA_CHECK(permanence == o.permanence ) << "SynapseData equals: permanence";
     NTA_CHECK(segment == o.segment ) << "SynapseData equals: segment";
     NTA_CHECK(presynapticMapIndex_ == o.presynapticMapIndex_ ) << "SynapseData equals: presynapticMapIndex_";
+    NTA_CHECK(permanent == o.permanent) << "SynapseData equals: permanent";
     } catch(const htm::Exception& ex) {
       UNUSED(ex);    // this avoids the warning if ex is not used.
       //NTA_WARN << "SynapseData equals: " << ex.what(); //Note: uncomment for debug, tells you 
@@ -360,7 +363,8 @@ public:
    */
   Synapse createSynapse(const Segment segment,
                         const CellIdx presynapticCell,
-                        Permanence permanence);
+                        Permanence permanence, 
+                        bool permanent = false);
 
 
 
@@ -386,7 +390,8 @@ public:
 				    const Permanence initialPermanence,
 				    Random& rng,
 				    const size_t maxNew = 0,
-				    const size_t maxSynapsesPerSegment = 0
+				    const size_t maxSynapsesPerSegment = 0, 
+                    bool permanent = false
 				    );
 
   /**
@@ -597,7 +602,7 @@ public:
                     const Permanence increment,
                     const Permanence decrement,
 		    const bool pruneZeroSynapses = false,
-		    const UInt segmentThreshold = 0);
+		    const UInt segmentThreshold = 0, bool permanent = false);
 
   /**
    * Ensures a minimum number of connected synapses.  This raises permance

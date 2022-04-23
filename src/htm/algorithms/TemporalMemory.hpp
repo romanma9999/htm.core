@@ -200,9 +200,12 @@ public:
    *
    * @param learn
    * If true, reinforce / punish / grow synapses.
-   */
+   * 
+   * @param permanent
+   * If true, new synapses will never disconnect 
+      */
   void activateCells(const SDR &activeColumns, 
-                     const bool learn = true);
+                     const bool learn = true, bool permanent = false);
 
   /**
    * Calculate dendrite segment activity, using the current active cells.  Call
@@ -261,14 +264,19 @@ public:
    * (optional) Vector of winning external predictive inputs.  When learning, only these
    * inputs are considered active.  
    * externalPredictiveInputsWinners must be a subset of externalPredictiveInputsActive.  
-   */
+   * 
+   * @param permanent
+   * If true, newly created synapses will be permanently connected
+      */
   virtual void compute(const SDR &activeColumns, 
                        const bool learn,
                        const SDR &externalPredictiveInputsActive, 
-                       const SDR &externalPredictiveInputsWinners);
+                       const SDR &externalPredictiveInputsWinners, 
+                       bool permanent = false);
 
   virtual void compute(const SDR &activeColumns, 
-                       const bool learn = true);
+                       const bool learn = true, 
+                       bool permanent = false);
 
   // ==============================
   //  Helper functions
@@ -289,8 +297,8 @@ public:
   Segment createSegment(const CellIdx& cell) {
     return connections_.createSegment(cell, maxSegmentsPerCell_); 
   }
-  Synapse createSynapse(const Segment seg, CellIdx presyn, Permanence perm) {
-    return connections_.createSynapse(seg, presyn, perm); 
+  Synapse createSynapse(const Segment seg, CellIdx presyn, Permanence perm, bool permanent = false) {
+    return connections_.createSynapse(seg, presyn, perm,permanent); 
   }
   void destroySegment(const Segment rm) {
     connections_.destroySegment(rm);
@@ -641,20 +649,18 @@ public:
 private:
   void punishPredictedColumn_(vector<Segment>::const_iterator columnMatchingSegmentsBegin, 
 		              vector<Segment>::const_iterator columnMatchingSegmentsEnd, 
-			      const SDR& prevActiveCells);
+			      const SDR& prevActiveCells, bool permanent = false);
 
   void activatePredictedColumn_(vector<Segment>::const_iterator columnActiveSegmentsBegin,
 		                vector<Segment>::const_iterator columnActiveSegmentsEnd,
 				const SDR &prevActiveCells,
-				const vector<CellIdx> &prevWinnerCells,
-				const bool learn);
+				const vector<CellIdx> &prevWinnerCells, const bool learn, bool permanent = false);
 
   void burstColumn_(const UInt column,
 		                    vector<Segment>::const_iterator columnMatchingSegmentsBegin,
 				    vector<Segment>::const_iterator columnMatchingSegmentsEnd,
 				    const SDR &prevActiveCells,
-				    const vector<CellIdx> &prevWinnerCells,
-				    const bool learn);
+				    const vector<CellIdx> &prevWinnerCells, const bool learn, bool permanent);
 
   void growSynapses_(const Segment& segment,
 		     const SynapseIdx nDesiredNewSynapses,
