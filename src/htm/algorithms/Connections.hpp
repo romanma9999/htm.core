@@ -727,6 +727,10 @@ public:
     ar(CEREAL_NVP(prunedSegs_));
   }
 
+
+  void make_current_network_permanent();
+
+
   /**
    * Gets the number of cells.
    *

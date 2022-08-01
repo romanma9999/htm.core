@@ -138,6 +138,15 @@ Segment Connections::createSegment(const CellIdx cell,
 }
 
 
+  void Connections::make_current_network_permanent() 
+  {
+    size_t n = synapses_.size();
+    for (size_t i = 0; i < n; ++i) 
+    {
+        synapses_[i].permanent = true;
+    }  
+  }
+
 Synapse Connections::createSynapse(Segment segment,
                                    CellIdx presynapticCell,
                                    Permanence permanence, 

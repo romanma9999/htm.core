@@ -60,6 +60,7 @@ TemporalMemory::TemporalMemory(
     Permanence permanenceIncrement, 
     Permanence permanenceDecrement,
     Permanence predictedSegmentDecrement, 
+    UInt cellNewConnectionMaxSegmentsGap,
     Int seed, 
     SegmentIdx maxSegmentsPerCell,
     SynapseIdx maxSynapsesPerSegment, 
@@ -70,7 +71,7 @@ TemporalMemory::TemporalMemory(
   initialize(columnDimensions, cellsPerColumn, activationThreshold,
              initialPermanence, connectedPermanence, minThreshold,
              maxNewSynapseCount, permanenceIncrement, permanenceDecrement,
-             predictedSegmentDecrement, seed, maxSegmentsPerCell,
+             predictedSegmentDecrement, cellNewConnectionMaxSegmentsGap,seed, maxSegmentsPerCell,
              maxSynapsesPerSegment, checkInputs, externalPredictiveInputs, anomalyMode);
 }
 
@@ -87,6 +88,7 @@ void TemporalMemory::initialize(
     Permanence permanenceIncrement, 
     Permanence permanenceDecrement,
     Permanence predictedSegmentDecrement, 
+    UInt cellNewConnectionMaxSegmentsGap,
     Int seed, 
     SegmentIdx maxSegmentsPerCell,
     SynapseIdx maxSynapsesPerSegment, 
@@ -124,6 +126,7 @@ void TemporalMemory::initialize(
   permanenceIncrement_ = permanenceIncrement;
   permanenceDecrement_ = permanenceDecrement;
   predictedSegmentDecrement_ = predictedSegmentDecrement;
+  cellNewConnectionMaxSegmentsGap = cellNewConnectionMaxSegmentsGap;
   externalPredictiveInputs_ = externalPredictiveInputs;
 
   // Initialize member variables
@@ -151,6 +154,10 @@ CellIdx TemporalMemory::getLeastUsedCell_(const CellIdx column) {
   const auto compareByNumSegments = [&](const CellIdx a, const CellIdx b) {
     if(connections.numSegments(a) == connections.numSegments(b)) 
       return a < b; //TODO rm? 
+    else if(connections.numSegments(a) - connections.numSegments(b) <= cellNewConnectionMaxSegmentsGap_) 
+      return true; // reuse segment as much as possible
+    else if(connections.numSegments(b) - connections.numSegments(a) <= cellNewConnectionMaxSegmentsGap_) 
+      return false; // reuse segment as much as possible
     else return connections.numSegments(a) < connections.numSegments(b);
   };
   return *std::min_element(cells.begin(), cells.end(), compareByNumSegments);
@@ -421,6 +428,13 @@ void TemporalMemory::compute(const SDR &activeColumns,
   activateCells(activeColumns, learn, permanent);
 }
 
+
+void TemporalMemory::make_current_network_permanent() 
+{
+    connections_.make_current_network_permanent();
+}
+
+
 void TemporalMemory::calculateAnomalyScore_(const SDR &activeColumns){
 
   // Update Anomaly Metric.  The anomaly is the percent of active columns that
@@ -634,6 +648,14 @@ Permanence TemporalMemory::getPredictedSegmentDecrement() const {
   return predictedSegmentDecrement_;
 }
 
+UInt TemporalMemory::getCellNewConnectionMaxSegmentsGap() const {
+  return cellNewConnectionMaxSegmentsGap_;
+}
+
+void TemporalMemory::setCellNewConnectionMaxSegmentsGap(UInt val) {
+    cellNewConnectionMaxSegmentsGap_ = val;
+}
+
 void TemporalMemory::setPredictedSegmentDecrement(
     Permanence predictedSegmentDecrement) {
   predictedSegmentDecrement_ = predictedSegmentDecrement;
@@ -725,6 +747,7 @@ void TemporalMemory::printParameters(std::ostream& out) const {
       << "permanenceIncrement       = " << getPermanenceIncrement() << std::endl
       << "permanenceDecrement       = " << getPermanenceDecrement() << std::endl
       << "predictedSegmentDecrement = " << getPredictedSegmentDecrement()
+      << "cellNewConnectionMaxSegmentsGap = " << getCellNewConnectionMaxSegmentsGap() << std::endl
       << std::endl
       << "maxSegmentsPerCell        = " << getMaxSegmentsPerCell() << std::endl
       << "maxSynapsesPerSegment     = " << getMaxSynapsesPerSegment()

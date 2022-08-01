@@ -65,6 +65,7 @@ Example usage:
                 , Permanence
                 , Permanence
                 , Permanence
+                , UInt
                 , Int
                 , SegmentIdx
                 , SynapseIdx
@@ -146,6 +147,7 @@ Argument anomalyMode (optional, default ANMode::RAW) selects mode for `TM.anomal
                 , py::arg("permanenceIncrement") = 0.1
                 , py::arg("permanenceDecrement") = 0.1
                 , py::arg("predictedSegmentDecrement") = 0.0
+                , py::arg("cellNewConnectionMaxSegmentsGap") = 0
                 , py::arg("seed") = 42
                 , py::arg("maxSegmentsPerCell") = 255
                 , py::arg("maxSynapsesPerSegment") = 255
@@ -164,6 +166,7 @@ Argument anomalyMode (optional, default ANMode::RAW) selects mode for `TM.anomal
     py_HTM.def("getPermanenceIncrement", &TemporalMemory::getPermanenceIncrement);
     py_HTM.def("getPermanenceDecrement", &TemporalMemory::getPermanenceDecrement);
     py_HTM.def("getPredictedSegmentDecrement", &TemporalMemory::getPredictedSegmentDecrement);
+    py_HTM.def("getCellNewConnectionMaxSegmentsGap", &TemporalMemory::getCellNewConnectionMaxSegmentsGap);    
     py_HTM.def("getMaxSegmentsPerCell", &TemporalMemory::getMaxSegmentsPerCell);
     py_HTM.def("getMaxSynapsesPerSegment", &TemporalMemory::getMaxSynapsesPerSegment);
     py_HTM.def("getCheckInputs", &TemporalMemory::getCheckInputs);
@@ -242,6 +245,13 @@ R"(Calculate the active cells, using the current active columns and
 dendrite segments.  Grow and reinforce synapses.)"
             , py::arg("activeColumns"), py::arg("learn") = true,py::arg("permanent") = false);
 
+
+        
+        py_HTM.def("make_current_network_permanent", &HTM_t::make_current_network_permanent,
+R"(makes the current topology permanent. 
+additional synapses/segments can be learned but current segments/synapses will always remain. )");
+
+
         py_HTM.def("compute", [](HTM_t& self, const SDR &activeColumns, bool learn, bool permanent = false)
             { self.compute(activeColumns, learn,permanent); },
                 py::arg("activeColumns"),
@@ -271,6 +281,9 @@ Argument externalPredictiveInputsWinners
     (optional) SDR of winning external predictive inputs.  When learning, only these
     inputs are considered active.
     externalPredictiveInputsWinners must be a subset of externalPredictiveInputsActive.
+
+Argument permanent
+    (optional) synapses created following this function call will be persistent
 )",
                 py::arg("activeColumns"),
                 py::arg("learn") = true,

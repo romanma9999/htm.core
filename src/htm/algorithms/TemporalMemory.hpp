@@ -144,6 +144,7 @@ public:
       Permanence      permanenceIncrement         = static_cast<Permanence>(0.10),
       Permanence      permanenceDecrement         = static_cast<Permanence>(0.10),
       Permanence      predictedSegmentDecrement   = static_cast<Permanence>(0.0),
+      UInt            cellNewConnectionMaxSegmentsGap = 0,
       Int             seed                        = 42,
       SegmentIdx      maxSegmentsPerCell          = 255,
       SynapseIdx      maxSynapsesPerSegment       = 255,
@@ -164,6 +165,7 @@ public:
     Permanence    permanenceIncrement         = static_cast<Permanence>(0.10),
     Permanence    permanenceDecrement         = static_cast<Permanence>(0.10),
     Permanence    predictedSegmentDecrement   = static_cast<Permanence>(0.0),
+    UInt cellNewConnectionMaxSegmentsGap    = 0,
     Int           seed                        = 42,
     SegmentIdx    maxSegmentsPerCell          = 255,
     SynapseIdx    maxSynapsesPerSegment       = 255,
@@ -277,6 +279,14 @@ public:
   virtual void compute(const SDR &activeColumns, 
                        const bool learn = true, 
                        bool permanent = false);
+
+
+  /**
+   * make current network permanent.
+   * additional synapses/segments can be learned but current synapses/segments will always remain
+   */
+   
+  virtual void  make_current_network_permanent();
 
   // ==============================
   //  Helper functions
@@ -437,6 +447,9 @@ public:
   Permanence getPredictedSegmentDecrement() const;
   void setPredictedSegmentDecrement(Permanence);
 
+  UInt getCellNewConnectionMaxSegmentsGap() const;
+  void setCellNewConnectionMaxSegmentsGap(UInt);
+
   /**
    * Returns the maxSegmentsPerCell.
    *
@@ -491,6 +504,7 @@ public:
        CEREAL_NVP(permanenceIncrement_),
        CEREAL_NVP(permanenceDecrement_),
        CEREAL_NVP(predictedSegmentDecrement_),
+       CEREAL_NVP(cellNewConnectionMaxSegmentsGap_),        
        CEREAL_NVP(externalPredictiveInputs_),
        CEREAL_NVP(maxSegmentsPerCell_),
        CEREAL_NVP(maxSynapsesPerSegment_),
@@ -554,6 +568,7 @@ public:
        CEREAL_NVP(permanenceIncrement_),
        CEREAL_NVP(permanenceDecrement_),
        CEREAL_NVP(predictedSegmentDecrement_),
+       CEREAL_NVP(cellNewConnectionMaxSegmentsGap_),        
        CEREAL_NVP(externalPredictiveInputs_),
        CEREAL_NVP(maxSegmentsPerCell_),
        CEREAL_NVP(maxSynapsesPerSegment_),
@@ -684,6 +699,7 @@ protected:
   Permanence permanenceIncrement_;
   Permanence permanenceDecrement_;
   Permanence predictedSegmentDecrement_;
+  UInt cellNewConnectionMaxSegmentsGap_;        
   UInt externalPredictiveInputs_;
   SegmentIdx maxSegmentsPerCell_;
   SynapseIdx maxSynapsesPerSegment_;
