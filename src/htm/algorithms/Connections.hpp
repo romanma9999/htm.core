@@ -570,6 +570,7 @@ public:
    * An output vector for active connected synapse counts per segment.
    *
    */
+
   std::vector<SynapseIdx> computeActivity(
                        std::vector<SynapseIdx> &numActivePotentialSynapsesForSegment,
                        const std::vector<CellIdx> &activePresynapticCells,
@@ -577,6 +578,20 @@ public:
 
   std::vector<SynapseIdx> computeActivity(const std::vector<CellIdx> &activePresynapticCells, 
 		                          const bool learn = true);
+
+
+  std::vector<SynapseIdx> computeActivityTM(
+                       std::vector<SynapseIdx> &numActivePotentialSynapsesForSegment,
+                       const std::vector<CellIdx> &activePresynapticCells,
+                       CellIdx cellsPerColumn,
+                       std::vector<SynapseIdx>& numRequiredConnectedColumn,
+                       std::vector<UInt16>& required_columns_for_prediction,
+		               const bool learn = true);
+
+  std::vector<SynapseIdx> computeActivityTM(const std::vector<CellIdx> &activePresynapticCells, 
+		                                    CellIdx cellsPerColumn,
+                                            std::vector<SynapseIdx>& numRequiredConnectedColumn,
+                                            std::vector<UInt16>& required_columns_for_prediction, const bool learn = true);
 
   /**
    * The primary method in charge of learning.   Adapts the permanence values of

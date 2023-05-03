@@ -154,10 +154,6 @@ CellIdx TemporalMemory::getLeastUsedCell_(const CellIdx column) {
   const auto compareByNumSegments = [&](const CellIdx a, const CellIdx b) {
     if(connections.numSegments(a) == connections.numSegments(b)) 
       return a < b; //TODO rm? 
-    else if(connections.numSegments(a) - connections.numSegments(b) <= cellNewConnectionMaxSegmentsGap_) 
-      return true; // reuse segment as much as possible
-    else if(connections.numSegments(b) - connections.numSegments(a) <= cellNewConnectionMaxSegmentsGap_) 
-      return false; // reuse segment as much as possible
     else return connections.numSegments(a) < connections.numSegments(b);
   };
   return *std::min_element(cells.begin(), cells.end(), compareByNumSegments);
@@ -234,7 +230,8 @@ void TemporalMemory::burstColumn_(
       if (nGrowDesired > 0) {
         connections_.growSynapses(*bestMatchingSegment, prevWinnerCells, initialPermanence_, rng_, nGrowDesired, maxSynapsesPerSegment_,permanent);
       }
-    } else {
+    } 
+    else {
       // No matching segments.
       // Grow a new segment and learn on it.
 
@@ -329,14 +326,17 @@ void TemporalMemory::activateCells(const SDR &activeColumns, const bool learn,bo
         activatePredictedColumn_(
             columnActiveSegmentsBegin, columnActiveSegmentsEnd,
             prevActiveCells, prevWinnerCells, learn,permanent);
-      } else {
+      } 
+      else 
+      {
         // This column was not predicted.
         burstColumn_(column,
                      columnMatchingSegmentsBegin, columnMatchingSegmentsEnd,
                      prevActiveCells, prevWinnerCells, 
                      learn, permanent);
       }
-    } else {
+    } 
+    else {
       // This column was predicted but is not active.
       if (learn) {
         punishPredictedColumn_(columnMatchingSegmentsBegin, columnMatchingSegmentsEnd, prevActiveCells, permanent);
@@ -386,15 +386,29 @@ void TemporalMemory::activateDendrites(const bool learn,
 
   const size_t length = connections.segmentFlatListLength();
 
+  // activeCells_ = cells that are "ON"
+  // numActiveConnectedSynapsesForSegment_ = vector of connected synapses per segment with presenaptic cells ON, for each index i, value is number of ON cells for segment i
+  // numActivePotentialSynapsesForSegment_ = vector of potentialy connected synapses per segment with presenaptic cells ON , value is numActiveConnectedSynapsesForSegment_[i] +  number of ON cells for potentially connected synapses
+/*  std::vector<SynapseIdx> numRequiredConnectedColumn(length, 0);
+  numActiveConnectedSynapsesForSegment_ = connections_.computeActivity(
+                              numActivePotentialSynapsesForSegment_,
+                              activeCells_,
+                              cellsPerColumn_,
+                              numRequiredConnectedColumn,
+                              required_columns_for_prediction_,
+                              learn);
+  */
   numActivePotentialSynapsesForSegment_.assign(length, 0);
   numActiveConnectedSynapsesForSegment_ = connections_.computeActivity(
                               numActivePotentialSynapsesForSegment_,
                               activeCells_,
-			      learn);
+                              learn);
 
   // Active segments, connected synapses.
   activeSegments_.clear();
+
   for (size_t segment = 0; segment < numActiveConnectedSynapsesForSegment_.size(); segment++) {
+    //if (numActiveConnectedSynapsesForSegment_[segment] >= activationThreshold_ && numRequiredConnectedColumn[segment] >= required_columns_for_prediction_[0]) { //TODO move to SegmentData.numConnected?
     if (numActiveConnectedSynapsesForSegment_[segment] >= activationThreshold_) { //TODO move to SegmentData.numConnected?
       activeSegments_.push_back(static_cast<UInt>(segment));
     }
@@ -413,6 +427,12 @@ void TemporalMemory::activateDendrites(const bool learn,
 
   segmentsValid_ = true;
 }
+
+void TemporalMemory::set_required_columns_for_prediction(vector<UInt16>& val) 
+{
+   required_columns_for_prediction_ = val;
+}
+
 
 
 void TemporalMemory::compute(const SDR &activeColumns, 
@@ -440,7 +460,9 @@ void TemporalMemory::calculateAnomalyScore_(const SDR &activeColumns){
   // Update Anomaly Metric.  The anomaly is the percent of active columns that
   // were not predicted. 
   // Must be computed here, between `activateDendrites()` and `activateCells()`.
-  switch(tmAnomaly_.mode_) {
+  predictedColumns_ = cellsToColumns( getPredictiveCells() );
+    
+    switch(tmAnomaly_.mode_) {
 
 	case ANMode::DISABLED: {
 	  tmAnomaly_.anomaly_ = 0.5f;
@@ -449,20 +471,20 @@ void TemporalMemory::calculateAnomalyScore_(const SDR &activeColumns){
 	case ANMode::RAW: {
 	  tmAnomaly_.anomaly_ = computeRawAnomalyScore(
 							 activeColumns,
-							 cellsToColumns( getPredictiveCells() ));
+							 predictedColumns_);
 			  } break;
 
 	case ANMode::LIKELIHOOD: {
 	  const Real raw = computeRawAnomalyScore(
 						 activeColumns,
-						 cellsToColumns( getPredictiveCells() ));
+						 predictedColumns_);
 	  tmAnomaly_.anomaly_ = tmAnomaly_.anomalyLikelihood_.anomalyProbability(raw);
 				 } break;
 
 	case ANMode::LOGLIKELIHOOD: {
 	  const Real raw = computeRawAnomalyScore(
 						 activeColumns,
-						 cellsToColumns( getPredictiveCells() ));
+						 predictedColumns_);
 	  const Real like = tmAnomaly_.anomalyLikelihood_.anomalyProbability(raw);
 	  const Real log  = tmAnomaly_.anomalyLikelihood_.computeLogLikelihood(like);
 	  tmAnomaly_.anomaly_ = log;
@@ -540,14 +562,25 @@ void TemporalMemory::getActiveCells(SDR &activeCells) const
 }
 
 
-SDR TemporalMemory::getPredictiveCells() const {
+SDR TemporalMemory::getPredictedCells() {
+    return predictedCells_;
+}
+
+SDR TemporalMemory::getPredictedColumns() {
+    return predictedColumns_;
+}
+
+
+SDR TemporalMemory::getPredictiveCells() {
 
   NTA_CHECK( segmentsValid_ )
     << "Call TM.activateDendrites() before TM.getPredictiveCells()!";
 
-  auto correctDims = getColumnDimensions();
-  correctDims.push_back(static_cast<CellIdx>(getCellsPerColumn()));
-  SDR predictive(correctDims);
+  if (!predictedCells_.dimensions.size()) {
+      auto correctDims = getColumnDimensions();
+      correctDims.push_back(static_cast<CellIdx>(getCellsPerColumn()));
+      predictedCells_ = SDR(correctDims);
+  }
 
   std::set<CellIdx> uniqueCells;
   //uniqueCells.reserve(activeSegments_.size());
@@ -556,10 +589,11 @@ SDR TemporalMemory::getPredictiveCells() const {
     const CellIdx cell = connections.cellForSegment(segment);
     uniqueCells.insert(cell); //set keeps the cells unique
   }
-
-  vector<CellIdx> predictiveCells(uniqueCells.begin(), uniqueCells.end());
-  predictive.setSparse(predictiveCells);
-  return predictive;
+  
+  vector<CellIdx> predictedCells(uniqueCells.begin(), uniqueCells.end());
+  
+  predictedCells_.setSparse(predictedCells);
+  return predictedCells_;
 }
 
 

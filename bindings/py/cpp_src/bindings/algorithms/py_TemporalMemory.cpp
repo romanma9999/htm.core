@@ -251,6 +251,9 @@ dendrite segments.  Grow and reinforce synapses.)"
 R"(makes the current topology permanent. 
 additional synapses/segments can be learned but current segments/synapses will always remain. )");
 
+        py_HTM.def("set_required_columns_for_prediction", [](HTM_t& self,  std::vector<UInt16>& val)
+            { self.set_required_columns_for_prediction(val); },
+                py::arg("val"));
 
         py_HTM.def("compute", [](HTM_t& self, const SDR &activeColumns, bool learn, bool permanent = false)
             { self.compute(activeColumns, learn,permanent); },
@@ -304,6 +307,7 @@ Resets sequence state of the TM.)");
             return cells;
         });
 
+
         py_HTM.def("activateDendrites", [](HTM_t &self, bool learn) {
             SDR externalPredictiveInputs({ self.externalPredictiveInputs });
             self.activateDendrites(learn, externalPredictiveInputs, externalPredictiveInputs);
@@ -336,9 +340,18 @@ See TM.compute() for details of the parameters.)",
             py::arg("externalPredictiveInputsActive"),
             py::arg("externalPredictiveInputsWinners"));
 
-        py_HTM.def("getPredictiveCells", [](const HTM_t& self)
+        py_HTM.def("getPredictiveCells", [](HTM_t& self)
             { return self.getPredictiveCells();},
 R"()");
+
+        py_HTM.def("getPredictedCells", [](HTM_t& self)
+            { return self.getPredictedCells();},
+R"()");
+
+        py_HTM.def("getPredictedColumns", [](HTM_t& self)
+            { return self.getPredictedColumns();},
+R"()");
+        
 
         py_HTM.def("getWinnerCells", [](const HTM_t& self)
         {

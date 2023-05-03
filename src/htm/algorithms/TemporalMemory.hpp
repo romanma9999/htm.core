@@ -281,6 +281,8 @@ public:
                        bool permanent = false);
 
 
+  virtual void set_required_columns_for_prediction(vector<UInt16>& val);
+
   /**
    * make current network permanent.
    * additional synapses/segments can be learned but current synapses/segments will always remain
@@ -343,7 +345,10 @@ public:
    * @return SDR with indices of the predictive cells.
    * SDR dimensions are {TM column dims x TM cells per column}
    */
-  SDR getPredictiveCells() const;
+  SDR getPredictiveCells();
+  
+  SDR getPredictedCells();
+  SDR getPredictedColumns();
 
   /**
    * Returns the indices of the winner cells.
@@ -512,6 +517,9 @@ public:
        CEREAL_NVP(columnDimensions_),
        CEREAL_NVP(activeCells_),
        CEREAL_NVP(winnerCells_),
+       CEREAL_NVP(predictedCells_),
+       CEREAL_NVP(predictedColumns_),
+       CEREAL_NVP(required_columns_for_prediction_),
        CEREAL_NVP(segmentsValid_),
        CEREAL_NVP(tmAnomaly_.anomaly_),
        CEREAL_NVP(tmAnomaly_.mode_),
@@ -576,6 +584,9 @@ public:
        CEREAL_NVP(columnDimensions_),
        CEREAL_NVP(activeCells_),
        CEREAL_NVP(winnerCells_),
+       CEREAL_NVP(predictedCells_),
+       CEREAL_NVP(predictedColumns_),
+       CEREAL_NVP(required_columns_for_prediction_),
        CEREAL_NVP(segmentsValid_),
        CEREAL_NVP(tmAnomaly_.anomaly_),
        CEREAL_NVP(tmAnomaly_.mode_),
@@ -707,6 +718,9 @@ protected:
 private:
   vector<CellIdx> activeCells_;
   vector<CellIdx> winnerCells_;
+  SDR predictedCells_;
+  SDR predictedColumns_;
+  vector<UInt16> required_columns_for_prediction_;
   bool segmentsValid_;
   vector<Segment> activeSegments_;
   vector<Segment> matchingSegments_;
@@ -731,6 +745,9 @@ public:
   const Connections& connections = connections_; //const view of Connections for the public
 
   const UInt &externalPredictiveInputs = externalPredictiveInputs_;
+
+  const SDR& predictedCells = predictedCells_;
+  const SDR& predictedColumns = predictedColumns_;
 
   anomaly_tm tmAnomaly_;
   /*

@@ -450,6 +450,8 @@ void Connections::reset() noexcept
   currentUpdates_.clear();
 }
 
+
+
 vector<SynapseIdx> Connections::computeActivity(const vector<CellIdx> &activePresynapticCells, const bool learn) {
 
   vector<SynapseIdx> numActiveConnectedSynapsesForSegment(segments_.size(), 0);
@@ -473,6 +475,60 @@ vector<SynapseIdx> Connections::computeActivity(const vector<CellIdx> &activePre
   return numActiveConnectedSynapsesForSegment;
 }
 
+vector<SynapseIdx> Connections::computeActivityTM(const vector<CellIdx> &activePresynapticCells, CellIdx cellsPerColumn,vector<SynapseIdx>& numRequiredConnectedColumn,vector<UInt16>& required_columns_for_prediction, const bool learn) {
+
+  size_t segments_size = segments_.size();
+  vector<SynapseIdx> numActiveConnectedSynapsesForSegment(segments_size, 0);
+  //vector<SynapseIdx> lastRequiredConnectedColumn(segments_size, 0);
+  
+
+  if(learn) iteration_++;
+
+  if( timeseries_ ) {
+    // Before each cycle of computation move the currentUpdates to the previous
+    // updates, and zero the currentUpdates in preparation for learning.
+    previousUpdates_.swap( currentUpdates_ );
+    currentUpdates_.clear();
+  }
+
+ /* UInt column;
+  bool required_column = false;
+  int num_required_column = 0;
+  int strength_required_column = 1;
+  int required_column_vector_size = required_columns_for_prediction.size();
+  if (required_column_vector_size > 2) 
+  {
+    num_required_column = required_columns_for_prediction[0];
+    strength_required_column = required_columns_for_prediction[1];
+  }
+  */
+ 
+  // Iterate through all connected synapses.
+  for (const auto& cell : activePresynapticCells) {
+      //column =  cell / cellsPerColumn;
+      //required_column = false;
+      if (connectedSegmentsForPresynapticCell_.count(cell)) 
+      {
+        /*if (num_required_column)
+            for(size_t i = 2; i < required_column_vector_size && !required_column; ++i ) 
+                required_column = required_columns_for_prediction[i] == column;
+         */
+        for(const auto& segment : connectedSegmentsForPresynapticCell_.at(cell)) 
+        {        
+            /*if (required_column && lastRequiredConnectedColumn[segment] != column) 
+            {
+                ++numRequiredConnectedColumn[segment];
+                lastRequiredConnectedColumn[segment] = column;
+            }*/
+           
+           ++numActiveConnectedSynapsesForSegment[segment];
+      }
+    }
+  }
+  
+  return numActiveConnectedSynapsesForSegment;
+}
+
 
 vector<SynapseIdx> Connections::computeActivity(
     vector<SynapseIdx> &numActivePotentialSynapsesForSegment,
@@ -482,6 +538,35 @@ vector<SynapseIdx> Connections::computeActivity(
 
   // Iterate through all connected synapses.
   const vector<SynapseIdx>& numActiveConnectedSynapsesForSegment = computeActivity( activePresynapticCells, learn );
+  NTA_ASSERT(numActiveConnectedSynapsesForSegment.size() == segments_.size());
+
+  // Iterate through all potential synapses.
+  std::copy( numActiveConnectedSynapsesForSegment.begin(),
+             numActiveConnectedSynapsesForSegment.end(),
+             numActivePotentialSynapsesForSegment.begin());
+
+  for (const auto& cell : activePresynapticCells) {
+    if (potentialSegmentsForPresynapticCell_.count(cell)) {
+      for(const auto& segment : potentialSegmentsForPresynapticCell_.at(cell)) {
+        ++numActivePotentialSynapsesForSegment[segment];
+      }
+    }
+  }
+  return numActiveConnectedSynapsesForSegment;
+}
+
+
+vector<SynapseIdx> Connections::computeActivityTM(
+    vector<SynapseIdx> &numActivePotentialSynapsesForSegment,
+    const vector<CellIdx> &activePresynapticCells,
+    CellIdx cellsPerColumn,
+    vector<SynapseIdx>& numRequiredConnectedColumn,
+    vector<UInt16>& required_columns_for_prediction,
+    const bool learn) {
+  NTA_ASSERT(numActivePotentialSynapsesForSegment.size() == segments_.size());
+
+  // Iterate through all connected synapses.
+  const vector<SynapseIdx>& numActiveConnectedSynapsesForSegment = computeActivityTM( activePresynapticCells,cellsPerColumn,numRequiredConnectedColumn,required_columns_for_prediction, learn );
   NTA_ASSERT(numActiveConnectedSynapsesForSegment.size() == segments_.size());
 
   // Iterate through all potential synapses.
@@ -709,9 +794,11 @@ void Connections::destroyMinPermanenceSynapses(
   // Don't destroy any cells that are in excludeCells.
   vector<Synapse> destroyCandidates;
   for( Synapse synapse : synapsesForSegment(segment)) {
-    const CellIdx presynapticCell = dataForSynapse(synapse).presynapticCell;
+    auto synapseData = dataForSynapse(synapse);
+    const CellIdx presynapticCell = synapseData.presynapticCell;
+    bool permanent = synapseData.permanent;
 
-    if( not std::binary_search(excludeCells.cbegin(), excludeCells.cend(), presynapticCell)) {
+    if(!permanent and ( not std::binary_search(excludeCells.cbegin(), excludeCells.cend(), presynapticCell))) {
       destroyCandidates.push_back(synapse);
     }
   }
