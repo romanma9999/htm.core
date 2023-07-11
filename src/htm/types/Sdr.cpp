@@ -127,6 +127,8 @@ namespace htm {
             NTA_CHECK(size_ > 0) << "SDR: all dimensions must be > 0";
         }
 
+        sparse_weight_valid = false;
+        dense_weight_valid = false;
         // Initialize the dense array storage, when it's needed.
         dense_valid = false;
         // Initialize the flatSparse array, nothing to do.
@@ -169,6 +171,7 @@ namespace htm {
         NTA_ASSERT(value.size() == size);
         dense_.swap( value );
         setDenseInplace();
+        clearWeights();
     }
 
     SDR_dense_t& SparseDistributedRepresentation::getDense() const {
@@ -200,6 +203,7 @@ namespace htm {
     void SparseDistributedRepresentation::setSparse( SDR_sparse_t &value ) {
         sparse_.swap( value );
         setSparseInplace();
+        clearWeights();
     }
 
     SDR_sparse_t& SparseDistributedRepresentation::getSparse() const {
@@ -237,6 +241,7 @@ namespace htm {
     void SparseDistributedRepresentation::setCoordinates( SDR_coordinate_t &value ) {
         coordinates_.swap( value );
         setCoordinatesInplace();
+        clearWeights();
     }
 
     SDR_coordinate_t& SparseDistributedRepresentation::getCoordinates() const {
@@ -405,6 +410,7 @@ namespace htm {
             }
         }
         SDR::setDenseInplace();
+        clearWeights();
     }
 
 
@@ -443,6 +449,7 @@ namespace htm {
             }
         }
         SDR::setDenseInplace();
+        clearWeights();
     }
 
 
@@ -499,6 +506,7 @@ namespace htm {
             }
         }
         SDR::setDenseInplace();
+        clearWeights();
     }
 
     bool SparseDistributedRepresentation::operator==(const SparseDistributedRepresentation &sdr) const {

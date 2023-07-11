@@ -36,6 +36,51 @@ namespace htm {
 using ElemDense        = Byte; //TODO allow changing this
 using ElemSparse       = UInt32; //must match with connections::CellIdx 
 
+using weight_t = uint8_t;
+using SDR_weight_t = std::vector<weight_t>;
+
+/*
+struct SDR_weight_tmp_t
+{
+private:
+    std::vector<weight_t> w_;
+
+public:
+
+    bool init(size_t size)
+    {
+        if (!size) return false;
+        w_.assign(size, 0);
+        return true;        
+    }
+
+    size_t size() { return w_.size(); }
+    size_t get_weight(size_t idx) { return w_.at(idx); }
+    std::vector<weight_t>& get_weights(size_t idx) { return w_; }
+    bool set_weight(size_t idx, weight_t value) 
+    { 
+        if (idx >= size()) 
+            return false;
+        w_[idx] = value;
+    }
+
+    bool set_weights(std::vector<weight_t> w) 
+    { 
+        w_ = w;
+    }
+
+    void clear()
+    {
+        if (w_.size())
+            w_.assign(w_.size(), 0);
+    }
+
+    bool is_init() { return size() != 0; }
+    
+};
+
+*/
+
 using SDR_dense_t      = std::vector<ElemDense>;
 using SDR_sparse_t     = std::vector<ElemSparse>;
 using SDR_coordinate_t = std::vector<std::vector<UInt>>;
@@ -136,6 +181,8 @@ protected:
     mutable SDR_dense_t      dense_;
     mutable SDR_sparse_t     sparse_;
     mutable SDR_coordinate_t coordinates_;
+    mutable SDR_weight_t sparse_weight_; // hold the weights for sparse SDR representation .  if uninitialized, weights are assumed to be 1
+    mutable SDR_weight_t dense_weight_; // hold the weights for dense SDR representation .  if uninitialized, weights are assumed to be 1
 
     /**
      * These flags remember which data formats are up-to-date and which formats
@@ -144,6 +191,8 @@ protected:
     mutable bool dense_valid;
     mutable bool sparse_valid;
     mutable bool coordinates_valid;
+    mutable bool sparse_weight_valid;
+    mutable bool dense_weight_valid;
 
 private:
     /**
@@ -267,7 +316,73 @@ public:
      void setDense( const std::vector<T> &value ) {
        NTA_ASSERT(value.size() == size);
        setDense(value.data());
+       clearWeights();
      }
+
+     void clearWeights()
+     {
+        sparse_weight_.clear();
+        sparse_weight_valid = false;
+        dense_weight_.clear();
+        dense_weight_valid = false;
+     }
+
+     void setSparseWeights(SDR_weight_t & w)
+     {
+        if (w.size() == getSum()) 
+        {
+            sparse_weight_ = w;
+            sparse_weight_valid = true;
+            dense_weight_.clear();
+            dense_weight_valid = false;
+        }
+      }
+
+     void setDenseWeights(SDR_weight_t & w)
+     {
+        if (w.size() == size) 
+        {
+            dense_weight_ = w;
+            dense_weight_valid = true;
+            sparse_weight_.clear();
+            sparse_weight_valid = false;
+        }
+     }
+
+     SDR_weight_t& getSparseWeights() const
+     {
+        if (sparse_weight_valid)
+            return sparse_weight_;
+        if (dense_weight_valid)
+        {
+            sparse_weight_.assign(getSum(),0);
+            uint32_t idx = 0;
+            for (auto & val: dense_weight_)
+                if (val) sparse_weight_[idx++] = val;
+
+            sparse_weight_valid = true;
+        }
+        return sparse_weight_;         
+     }
+
+     SDR_weight_t& getDenseWeights() const
+     {
+        if (dense_weight_valid)
+            return dense_weight_;
+        if (sparse_weight_valid)
+        {
+             dense_weight_.assign(size,0);
+             SDR_sparse_t & sp = getSparse();  
+             uint32_t idx = 0;
+             for (auto & val: sp)
+                   dense_weight_[val] = sparse_weight_[idx++];
+             dense_weight_valid = true;
+        }
+        return dense_weight_;
+     }
+
+
+         
 
     /**
      * Copy a new value into the SDR, overwritting the current value.
@@ -282,6 +397,7 @@ public:
        for(auto i = 0u; i < size; i++)
          dense_[i] = value[i] != zero;
        setDenseInplace();
+       clearWeights();
      }
 
     /**
@@ -324,6 +440,7 @@ public:
     void setSparse( const std::vector<T> &value ) {
       sparse_.assign( value.begin(), value.end() );
       setSparseInplace();
+      clearWeights();
     }
 
     /**
@@ -339,6 +456,7 @@ public:
     void setSparse( const T *value, const UInt num_values ) {
       sparse_.assign( value, value + num_values );
       setSparseInplace();
+      clearWeights();
     }
 
     /**
@@ -395,6 +513,7 @@ public:
           coordinates_[dim][i] = (UInt)value[dim][i];
       }
       setCoordinatesInplace();
+      clearWeights();
     }
 
     /**

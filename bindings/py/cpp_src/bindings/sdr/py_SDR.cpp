@@ -203,6 +203,38 @@ accessing all of the true bits in the SDR.
 
 Sparse data must contain no duplicates.)");
 
+
+        py_SDR.def_property("sparse_weight",
+            [](shared_ptr<SDR> self) {
+                auto destructor = py::capsule( new shared_ptr<SDR>( self ),
+                    [](void *keepAlive) {
+                        delete reinterpret_cast<shared_ptr<SDR>*>(keepAlive); });
+                return py::array(self->getSum(), self->getSparseWeights().data(), destructor);
+            },
+            [](SDR &self, SDR_weight_t data) {
+                NTA_CHECK( data.size() <= self.size );
+                self.setSparseWeights( data ); },
+R"(A numpy array containing the weights of only the true values in the SDR.
+These are weights into the flattened SDR. This format allows for quickly
+accessing all of the true bits in the SDR.
+.)");
+
+        py_SDR.def_property("dense_weight",
+            [](shared_ptr<SDR> self) {
+                auto destructor = py::capsule( new shared_ptr<SDR>( self ),
+                    [](void *keepAlive) {
+                        delete reinterpret_cast<shared_ptr<SDR>*>(keepAlive); });
+                return py::array(self->getSum(), self->getDenseWeights().data(), destructor);
+            },
+            [](SDR &self, SDR_weight_t data) {
+                NTA_CHECK( data.size() <= self.size );
+                self.setDenseWeights( data ); },
+R"(A numpy array containing the weights of only the true values in the SDR.
+These are weights into the flattened SDR. This format allows for quickly
+accessing all of the true bits in the SDR.
+.)");
+
+
         py_SDR.def_property("coordinates",
             [](shared_ptr<SDR> self) {
                 auto destructor = py::capsule( new shared_ptr<SDR>( self ),
@@ -227,6 +259,8 @@ location of each true bit inside of the SDR's dimensional space.
 
 Coordinate data must be sorted and contain no duplicates.)");
 
+
+
         py_SDR.def("setSDR", [](SDR *self, SDR &other) {
             NTA_CHECK( self->dimensions == other.dimensions );
             self->setSDR( other );
@@ -237,6 +271,9 @@ modified without affecting each other.)");
 
         py_SDR.def("getSum", &SDR::getSum,
             "Calculates the number of true values in the SDR.");
+
+        py_SDR.def("initSparseWeight", &SDR::initSparseWeight,
+            "init initSparseWeight");
 
         py_SDR.def("getSparsity", &SDR::getSparsity,
 R"(Calculates the sparsity of the SDR, which is the fraction of bits which are
