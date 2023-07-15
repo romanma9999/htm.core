@@ -579,6 +579,9 @@ public:
   std::vector<SynapseIdx> computeActivity(const std::vector<CellIdx> &activePresynapticCells, 
 		                          const bool learn = true);
 
+std::vector<SynapseIdx> computeActivityWeighted(const std::vector<CellIdx> &activePresynapticCells, const SDR_weight_t &activePresynapticCellsWeights,
+		                          const bool learn = true);
+
 
   std::vector<SynapseIdx> computeActivityTM(
                        std::vector<SynapseIdx> &numActivePotentialSynapsesForSegment,

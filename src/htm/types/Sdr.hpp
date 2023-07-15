@@ -365,6 +365,23 @@ public:
         return sparse_weight_;         
      }
 
+
+     weight_t getWeight(size_t idx) 
+     {
+        weight_t res = 0;
+        SDR_weight_t& w = getSparseWeights();
+        SDR_sparse_t& s = getSparse();
+        size_t w_idx = 0;
+        for (auto& v: s)
+        {
+            if (v == idx)
+                return w[w_idx];
+            ++w_idx;
+        }
+        
+        return res;         
+     }
+
      SDR_weight_t& getDenseWeights() const
      {
         if (dense_weight_valid)
@@ -725,15 +742,19 @@ public:
     void save_ar(Archive & ar) const
     {
         getSparse(); // to make sure sparse is valid.
-        ar(cereal::make_nvp("dimensions", dimensions_), cereal::make_nvp("sparse", sparse_) );
+        getSparseWeights(); // to make sure sparse weight is valid.
+        
+        ar(cereal::make_nvp("dimensions", dimensions_), cereal::make_nvp("sparse", sparse_),cereal::make_nvp("weight", sparse_weight_) );
     }
 
     template<class Archive>
     void load_ar(Archive & ar)
     {
-        ar( dimensions_, sparse_ );
+        ar( dimensions_, sparse_, sparse_weight_);
         initialize( dimensions_ );
         setSparseInplace();
+        if (sparse_weight_.size() && getSum())
+            sparse_weight_valid = true;
     }
 
     /**

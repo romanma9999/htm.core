@@ -68,7 +68,7 @@ private:
 
 SpatialPooler::SpatialPooler() {
   // The current version number.
-  version_ = 2;
+  version_ = 3;
 }
 
 SpatialPooler::SpatialPooler(
@@ -81,7 +81,7 @@ SpatialPooler::SpatialPooler(
     : SpatialPooler::SpatialPooler()
 {
   // The current version number for serialzation.
-  version_ = 2;
+  version_ = 3;
 
   initialize(inputDimensions,
              columnDimensions,
@@ -287,16 +287,20 @@ void SpatialPooler::setMinOverlapDutyCycles(const Real minOverlapDutyCycles[]) {
                                &minOverlapDutyCycles[numColumns_]);
 }
 
+
+// potential will have 1 for all inputs connected to column by synapse
 void SpatialPooler::getPotential(UInt column, UInt potential[]) const {
   NTA_ASSERT(column < numColumns_);
   std::fill( potential, potential + numInputs_, 0 );
   const auto &synapses = connections_.synapsesForSegment( column );
   for(const auto syn : synapses) {
     const auto &synData = connections_.dataForSynapse( syn );
-    potential[synData.presynapticCell] = 1;
+    potential[synData.presynapticCell] = 1; 
   }
 }
 
+
+// take potential input space, connect it to columns by synapses and initiate with random strength, initConnectedPct_ synapses will have strength above connected threshold
 void SpatialPooler::setPotential(UInt column, const UInt potential[]) {
   NTA_ASSERT(column < numColumns_);
 
@@ -314,6 +318,7 @@ void SpatialPooler::setPotential(UInt column, const UInt potential[]) {
   }
 }
 
+// get all inputs where permanence is above threshold
 vector<Real> SpatialPooler::getPermanence(const UInt column, 
 				          const Permanence threshold) const {
   NTA_ASSERT(column < numColumns_);
@@ -328,7 +333,7 @@ vector<Real> SpatialPooler::getPermanence(const UInt column,
   return permanences;
 }
 
-
+// update connection permanence of inputs connected to columns
 void SpatialPooler::setPermanence(UInt column, const Real permanences[]) {
   NTA_ASSERT(column < numColumns_);
 
@@ -476,16 +481,27 @@ const vector<SynapseIdx> SpatialPooler::compute(const SDR &input, const bool lea
   active.reshape( columnDimensions_ );
   updateBookeepingVars_(learn);
 
-  const auto& overlaps = connections_.computeActivity(input.getSparse(), learn);
+  // overlaps is vector where for each segment(column) the weight of connected inputs is counted
+  const auto& overlaps = connections_.computeActivityWeighted(input.getSparse(),input.getSparseWeights(), learn);
 
+  // dot product vs boost factors. 
   boostOverlaps_(overlaps, boostedOverlaps_);
 
+  // return vector with winning columns indexes
   auto activeVector = inhibitColumns_(boostedOverlaps_);
   // Notify the active SDR that its internal data vector has changed.  Always
   // call SDR's setter methods even if when modifying the SDR's own data
   // inplace.
   sort( activeVector.begin(), activeVector.end() );
+
+  SDR_weight_t active_weights;
+  active_weights.assign(activeVector.size(),1);
+  size_t weight_idx = 0;
+  for (auto column_idx : activeVector)
+    active_weights[weight_idx++] = boostedOverlaps_[column_idx];
+
   active.setSparse( activeVector );
+  active.setSparseWeights(active_weights);
 
   if (learn) {
     adaptSynapses_(input, active);

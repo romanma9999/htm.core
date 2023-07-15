@@ -272,8 +272,8 @@ modified without affecting each other.)");
         py_SDR.def("getSum", &SDR::getSum,
             "Calculates the number of true values in the SDR.");
 
-        py_SDR.def("initSparseWeight", &SDR::initSparseWeight,
-            "init initSparseWeight");
+        py_SDR.def("clearWeights", &SDR::clearWeights,
+            "init initSparse Weight");
 
         py_SDR.def("getSparsity", &SDR::getSparsity,
 R"(Calculates the sparsity of the SDR, which is the fraction of bits which are

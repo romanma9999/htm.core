@@ -475,6 +475,41 @@ vector<SynapseIdx> Connections::computeActivity(const vector<CellIdx> &activePre
   return numActiveConnectedSynapsesForSegment;
 }
 
+
+
+std::vector<SynapseIdx> Connections::computeActivityWeighted(const std::vector<CellIdx> &activePresynapticCells, const SDR_weight_t &activePresynapticCellsWeights,
+		                          const bool learn){
+
+  vector<SynapseIdx> numActiveConnectedSynapsesWeightForSegment(segments_.size(), 0);
+  if(learn) iteration_++;
+
+  if( timeseries_ ) {
+    // Before each cycle of computation move the currentUpdates to the previous
+    // updates, and zero the currentUpdates in preparation for learning.
+    previousUpdates_.swap( currentUpdates_ );
+    currentUpdates_.clear();
+  }
+
+  // Iterate through all connected synapses.
+  size_t w_idx = 0;
+  for (const auto& cell : activePresynapticCells) {
+    if (connectedSegmentsForPresynapticCell_.count(cell)) {
+      for(const auto& segment : connectedSegmentsForPresynapticCell_.at(cell)) {
+        if (activePresynapticCellsWeights.size())
+            numActiveConnectedSynapsesWeightForSegment[segment] +=activePresynapticCellsWeights[w_idx];
+        else
+            ++numActiveConnectedSynapsesWeightForSegment[segment];
+      }
+    }
+    ++w_idx;
+  }
+  return numActiveConnectedSynapsesWeightForSegment;
+}
+
+
+
+
+
 vector<SynapseIdx> Connections::computeActivityTM(const vector<CellIdx> &activePresynapticCells, CellIdx cellsPerColumn,vector<SynapseIdx>& numRequiredConnectedColumn,vector<UInt16>& required_columns_for_prediction, const bool learn) {
 
   size_t segments_size = segments_.size();

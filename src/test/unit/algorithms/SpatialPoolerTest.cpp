@@ -2068,11 +2068,11 @@ TEST(SpatialPoolerTest, ExactOutput) {
   };
   silver_sdr.setSparse(data);
 
-
+  //silver_sdr.save(std::cout, JSON);
   // Gold tests initalizing an SDR from a manually created string in JSON format.
 	// hint: you can generate this string using
 	//       silver_sdr.save(std::cout, JSON);
-  string gold = "{\"dimensions\": [200],\"sparse\": [4, 64, 74, 78, 85, 113, 125, 126, 127, 153]}";
+  string gold = "{\"dimensions\": [200],\"sparse\": [4, 64, 74, 78, 85, 113, 125, 126, 127, 153],\"weight\": []}";
   std::stringstream gold_stream( gold );
   SDR gold_sdr;
   gold_sdr.load( gold_stream, JSON );
@@ -2104,6 +2104,15 @@ TEST(SpatialPoolerTest, ExactOutput) {
     inputs.randomize( 0.15f, rng );
     sp.compute(inputs, true, columns);
   }
+  auto & w1 = columns.getDenseWeights();
+  auto & w2 = columns.getSparseWeights();
+  auto & vsdr = columns.getSparse();
+  size_t widx = 0;
+  for (auto sidx : vsdr)
+  {
+    ASSERT_EQ(w1[sidx],w2[widx++]);
+  }
+
 
 #if defined __aarch64__ || defined __arm__
 #undef _ARCH_DETERMINISTIC
