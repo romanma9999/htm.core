@@ -91,7 +91,7 @@ void setup() {
   sp.initialize(
     /* inputDimensions */             input.dimensions,
     /* columnDimensions */            columns.dimensions,
-    /* potentialRadius */             7, // with 2D, 7 results in 15x15 area, which is cca 25% for the input area. Slightly improves than 99999 aka "no topology, all to all connections"
+    /* potentialRadius */             99999, // with 2D, 7 results in 15x15 area, which is cca 25% for the input area. Slightly improves than 99999 aka "no topology, all to all connections"
     /* potentialPct */                0.1f, //we have only 10 classes, and << #columns. So we want to force each col to specialize. Cca 0.3 w "7" above, or very small (0.1) for "no topology". Cannot be too small due to internal checks. Speed++
     /* globalInhibition */            true, //Speed+++++++; SDR quality-- (global does have active nearby cols, which we want to avoid (local)); Results+-0
     /* localAreaDensity */            0.1f,  // % active bits
@@ -138,6 +138,7 @@ void train(const bool skipSP=false, const UInt maxSamples=0 /* 0=unlimited, or l
   Timer tTrain(true);
 
   UInt sample = 0;
+  cout << "train SP" << endl;
   for(auto epoch = 0u; epoch < train_dataset_iterations; epoch++) {
     NTA_INFO << "epoch " << epoch;
     // Shuffle the training data.
@@ -156,7 +157,7 @@ void train(const bool skipSP=false, const UInt maxSamples=0 /* 0=unlimited, or l
       input.setDense( image );
       if(not skipSP) 
         sp.compute(input, true, columns);
-      clsr.learn( skipSP ? input : columns, label );
+      
       if( verbosity && (++i % 1000 == 0) ) cout << "." << flush;
       sample++;
       if(maxSamples > 0 and sample >= maxSamples) {
@@ -172,6 +173,42 @@ void train(const bool skipSP=false, const UInt maxSamples=0 /* 0=unlimited, or l
   cout << sp << endl;
   }
   
+  cout << "train classifier " << endl;
+   for(auto epoch = 0u; epoch < train_dataset_iterations; epoch++) {
+    NTA_INFO << "epoch " << epoch;
+    // Shuffle the training data.
+    vector<UInt> index( dataset.training_labels.size() );
+    for (UInt i=0; i<dataset.training_labels.size(); i++) {
+      index.push_back(i);
+    }
+    Random().shuffle( index.begin(), index.end() );
+
+    for(const auto idx : index) { // index = order of label (shuffeled)
+      // Get the input & label
+      const auto image = dataset.training_images.at(idx);
+      const UInt label  = dataset.training_labels.at(idx);
+
+      // Compute & Train
+      input.setDense( image );
+      if(not skipSP) 
+        sp.compute(input, false, columns);
+
+      clsr.learn( skipSP ? input : columns, label );
+      if( verbosity && (++i % 1000 == 0) ) cout << "." << flush;
+      sample++;
+      if(maxSamples > 0 and sample >= maxSamples) {
+        cout << "Reached maxSample limit during training, finishing. " << sample << endl;
+        break;
+      }
+    }
+    if( verbosity ) cout << endl;
+  
+  cout << "epoch ended" << endl;
+  cout << "inputStats "  << inputStats << endl;
+  cout << "columnStats " << columnStats << endl;
+  cout << sp << endl;
+  }
+
   tTrain.stop();
   cout << "MNIST train time: " << tTrain.getElapsed() << endl; 
 

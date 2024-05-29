@@ -54,12 +54,27 @@ PDF Classifier::infer(const SDR & pattern) const {
   }
   NTA_ASSERT(pattern.size == dimensions_) << "Input SDR does not match previously seen size!";
 
+  auto & pattern_weights = pattern.getSparseWeights();
+  static int once = 1;
   // Accumulate feed forward input.
+  size_t w_idx = 0;
+  bool weight_enabled = pattern_weights.size() > 0;
   PDF probabilities( numCategories_, 0.0f );
   for( const auto bit : pattern.getSparse() ) {
     for( size_t i = 0; i < numCategories_; i++ ) {
-      probabilities[i] += weights_[bit][i];
+      if (weight_enabled)
+      {
+        probabilities[i] += weights_[bit][i]*pattern_weights[w_idx];
+        if (once)
+        {
+            once = 0;
+            cout << "weights enabled" << endl;
+        }
+      }
+      else
+        probabilities[i] += weights_[bit][i];
     }
+    ++w_idx;
   }
 
   // Convert from accumulated votes to probability density function.
